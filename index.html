@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>天黑請閉眼</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;background:#000;font-family:sans-serif;color:#fff;overflow:hidden;}
+    .app{width:100%;height:100dvh;display:flex;align-items:center;justify-content:center;background:#111;transition:.6s;}
+    .app.night{background:#000;}
+    .screen{text-align:center;padding:20px;}
+    .btn{padding:18px 30px;font-size:28px;border:none;border-radius:16px;background:#2e7d32;color:#fff;cursor:pointer;margin:10px;}
+    .small-btn{padding:12px 20px;font-size:18px;background:#444;}
+    .msg{display:none;font-size:30px;line-height:1.8;white-space:pre-line;margin-bottom:20px;}
+    .msg.show{display:block;}
+    .input{margin-top:10px;font-size:20px;padding:8px;border-radius:8px;border:none;width:120px;text-align:center;}
+    .label{font-size:18px;color:#ccc;}
+  </style>
+</head>
+<body>
+  <div id="app" class="app">
+    <div class="screen">
+      <div id="homePanel">
+        <div class="label">設定倒數秒數</div>
+        <input id="secInput" class="input" type="number" value="5" min="1" max="60" />
+        <br/>
+        <button id="startBtn" class="btn">遊戲開始</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+      <button id="homeBtn" class="btn small-btn" style="display:none;">回到首頁</button>
+    </div>
+  </div>
+
+<script>
+const STEP1 = '天黑請閉眼，請身份是白薔薇、司教、雙刃、巨刃的玩家請睜眼';
+const STEP2 = '所有人請閉眼';
+const STEP3 = '雙刃玩家睜眼，將手上的幽魂與場中的雙刃交換';
+const STEP4 = '交換後收回手中';
+const STEP5 = '閉上眼停止動作';
+const STEP6 = '天亮了，遊戲開始，請所有人睜眼開始遊戲';
+
+const app = document.getElementById('app');
+const startBtn = document.getElementById('startBtn');
+const msg = document.getElementById('msg');
+const homeBtn = document.getElementById('homeBtn');
+const homePanel = document.getElementById('homePanel');
+const secInput = document.getElementById('secInput');
+
+let voice = null;
+let countdownSec = 5;
+
+function loadVoices(){
+  const vs = speechSynthesis.getVoices();
+  voice = vs.find(v=>v.lang.includes('zh')) || null;
+}
+
+function speak(text, onEnd){
+  const u = new SpeechSynthesisUtterance(text);
+  if(voice) u.voice = voice;
+  u.rate = 0.9;
+  u.onend = ()=>{ if(onEnd) onEnd(); };
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+function show(text){
+  msg.innerText = text;
+}
+
+function startGame(){
+  countdownSec = parseInt(secInput.value) || 5;
+
+  homePanel.style.display = 'none';
+  app.classList.add('night');
+  msg.classList.add('show');
+
+  show(STEP1);
+  speak(STEP1, ()=> startCountdown(countdownSec, nextStep1));
+}
+
+function nextStep1(){
+  show(STEP2);
+  speak(STEP2, ()=>{
+    setTimeout(()=>{
+      show(STEP3);
+      speak(STEP3, ()=>{
+        setTimeout(()=>{
+          show(STEP4);
+          speak(STEP4, ()=>{
+            startCountdown(countdownSec, ()=>{
+              show(STEP5);
+              speak(STEP5, ()=>{
+                setTimeout(()=>{
+                  show(STEP6);
+                  speak(STEP6, ()=>{
+                    homeBtn.style.display = 'inline-block';
+                  });
+                }, 800);
+              });
+            });
+          });
+        }, 800);
+      });
+    }, 800);
+  });
+}
+
+function startCountdown(sec, onEnd){
+  let current = sec;
+
+  function tick(){
+    if(current <= 0){
+      if(onEnd) onEnd();
+      return;
+    }
+
+    show(`倒數 ${current} 秒`);
+    speak(current.toString());
+
+    current--;
+    setTimeout(tick, 1000);
+  }
+
+  setTimeout(tick, 1000);
+}
+
+function resetGame(){
+  speechSynthesis.cancel();
+  app.classList.remove('night');
+  msg.classList.remove('show');
+  homePanel.style.display = 'block';
+  homeBtn.style.display = 'none';
+  msg.innerText = '';
+}
+
+startBtn.addEventListener('click', startGame);
+homeBtn.addEventListener('click', resetGame);
+
+loadVoices();
+speechSynthesis.onvoiceschanged = loadVoices;
+</script>
+</body>
+</html>
